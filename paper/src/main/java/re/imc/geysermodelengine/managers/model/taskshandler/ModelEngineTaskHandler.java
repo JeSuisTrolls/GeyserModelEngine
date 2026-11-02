@@ -102,6 +102,11 @@ public class ModelEngineTaskHandler implements TaskHandler {
 
         plugin.getEntityTaskManager().getPropertyHandler().sendScale(entityData, viewers, lastScale, forceSync);
         plugin.getEntityTaskManager().getPropertyHandler().sendColor(entityData, viewers, lastColor, forceSync);
+
+        // Bone visibility / animation properties are otherwise only sent on spawn and when they change: if the spawn
+        // send is dropped (custom entity not ready on Geyser yet), the model stays in its rest pose with hidden bones
+        // showing until it respawns. Resend them with the scale/color sync.
+        if (forceSync) plugin.getEntityTaskManager().getPropertyHandler().updateEntityProperties(entityData, viewers, true);
     }
 
     @Override
@@ -123,6 +128,15 @@ public class ModelEngineTaskHandler implements TaskHandler {
 
                 plugin.getEntityTaskManager().getPropertyHandler().updateEntityProperties(entityData, Collections.singleton(player), true);
             }, propertiesSendDelay, TimeUnit.MILLISECONDS);
+
+            // Resent shortly after in case Geyser had not spawned the custom entity yet (the first send is then lost)
+            for (long resend : new long[]{300, 1000}) {
+                plugin.getSchedulerPool().schedule(() -> {
+                    if (!player.isOnline() || !entityData.getViewers().contains(player)) return;
+                    plugin.getEntityTaskManager().getPropertyHandler().sendScale(entityData, Collections.singleton(player), lastScale, true);
+                    plugin.getEntityTaskManager().getPropertyHandler().updateEntityProperties(entityData, Collections.singleton(player), true);
+                }, propertiesSendDelay + resend, TimeUnit.MILLISECONDS);
+            }
         });
     }
 
