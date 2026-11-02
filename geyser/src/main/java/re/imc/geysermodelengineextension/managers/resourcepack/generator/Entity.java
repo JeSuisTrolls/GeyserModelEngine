@@ -120,10 +120,10 @@ public class Entity {
             }
 
             String controllerName = name.equals(modelId) ? "controller.render.meg_" + modelId : "controller.render.meg_" + modelId + "_" + name;
-            jsonRenderControllers.add(controllerName);
+            addRenderController(jsonRenderControllers, controllerName);
             if (hasTints()) {
-                jsonRenderControllers.add(controllerName + "_tint");
-                jsonRenderControllers.add(controllerName + "_tintblend");
+                addRenderController(jsonRenderControllers, controllerName + "_tint");
+                addRenderController(jsonRenderControllers, controllerName + "_tintblend");
             }
         }
 
@@ -146,6 +146,22 @@ public class Entity {
             manual.addProperty(ManualAnimator.ANIMATION, ManualAnimator.active(namespace));
             animate.add(manual);
         }
+    }
+
+    /**
+     * Adds a render controller, drawn only within options.resource-pack.view-distance blocks of the camera when set.
+     * Java hides display entities (ModelEngine bones) past view_range x 64 blocks, while Bedrock draws the model as
+     * long as the server tracks its entity, often much farther.
+     */
+    private static void addRenderController(JsonArray controllers, String name) {
+        double distance = GeyserModelEngineExtension.getExtension().getConfigManager().getConfig().getDouble("options.resource-pack.view-distance");
+        if (distance <= 0) {
+            controllers.add(name);
+            return;
+        }
+        JsonObject conditional = new JsonObject();
+        conditional.addProperty(name, "query.distance_from_camera <= " + distance);
+        controllers.add(conditional);
     }
 
     public void register(String namespace) {

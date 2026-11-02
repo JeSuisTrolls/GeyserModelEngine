@@ -13,3 +13,4 @@ options:
     translucent-threshold: 0.5
     bone-tints: true # Show ModelEngine bone tints on Bedrock (one tint colour per model)
     manual-animator: true # Apply ModelEngine manual animators on the root bone (e.g. MythicMobs animatemodel)
+    view-distance: 0 # Hide models farther than this many blocks from the camera, like Java does (64 = Java default view range). 0 = no limit
