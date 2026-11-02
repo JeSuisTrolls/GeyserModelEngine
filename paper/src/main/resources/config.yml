@@ -11,6 +11,7 @@ models:
   custom-entity-sync-resend-count: 3
   entity-position-update-period: 35 # ms
   entity-update-period: 20 # ms
+  view-distance: 0 # Only spawn models within this many blocks of the Bedrock player (0 = send view distance)
   mount-control-period: 50 # ms
   thread-pool-size: 4
 

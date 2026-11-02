@@ -97,11 +97,17 @@ public class EntityTaskManager {
 
         Location playerLocation = player.getLocation().clone();
         Location entityLocation = entity.getLocation().clone();
-        playerLocation.setY(0);
-        entityLocation.setY(0);
 
         if (playerLocation.getWorld() != entityLocation.getWorld()) return false;
         if (!plugin.getModelManager().getModelHandler().canSee(player, model)) return false;
+
+        // models.view-distance (blocks, 3D): Bedrock keeps and animates every model it gets, so far models are
+        // not spawned at all for Bedrock players (and destroyed when they leave the range). 0 = the send view distance.
+        double maxDistance = plugin.getConfigManager().getConfig().getDouble("models.view-distance", 0);
+        if (maxDistance > 0) return playerLocation.distanceSquared(entityLocation) <= maxDistance * maxDistance;
+
+        playerLocation.setY(0);
+        entityLocation.setY(0);
         if (playerLocation.distanceSquared(entityLocation) > player.getSendViewDistance() * player.getSendViewDistance() * 48) return false;
 
         return true;
