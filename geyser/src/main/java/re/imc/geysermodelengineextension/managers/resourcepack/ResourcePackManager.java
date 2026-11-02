@@ -46,6 +46,7 @@ public class ResourcePackManager {
 
     public void loadPack() {
         generateResourcePack(inputFolder, generatedPack);
+        stampVersion(generatedPack);
         generatedPackZipPath = extension.dataFolder().resolve("ResourcePack/generated_pack.zip");
 
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(Files.newOutputStream(generatedPackZipPath))) {
@@ -56,6 +57,40 @@ public class ResourcePackManager {
 
         for (Entity entity : entityCache.values()) {
             entity.register(extension.getConfigManager().getConfig().getString("models.namespace"));
+        }
+    }
+
+    /**
+     * Sets the pack version from a hash of its content. Bedrock clients cache packs by uuid + version: with a fixed
+     * version they keep using an old copy after the pack changes. Version parts stay below 32768 (stored on 16 bits).
+     */
+    private void stampVersion(File pack) {
+        File manifestFile = new File(pack, "manifest.json");
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-1");
+            Path root = pack.toPath();
+            List<Path> files;
+            try (var stream = Files.walk(root)) {
+                files = stream.filter(Files::isRegularFile).filter(p -> !p.equals(manifestFile.toPath())).sorted().toList();
+            }
+            for (Path file : files) {
+                digest.update(root.relativize(file).toString().replace('\\', '/').getBytes(StandardCharsets.UTF_8));
+                digest.update(Files.readAllBytes(file));
+            }
+            byte[] hash = digest.digest();
+            int minor = ((hash[0] & 0x7F) << 8) | (hash[1] & 0xFF);
+            int patch = ((hash[2] & 0x7F) << 8) | (hash[3] & 0xFF);
+
+            JsonObject manifest = JsonParser.parseString(Files.readString(manifestFile.toPath())).getAsJsonObject();
+            com.google.gson.JsonArray version = new com.google.gson.JsonArray();
+            version.add(1);
+            version.add(minor);
+            version.add(patch);
+            manifest.getAsJsonObject("header").add("version", version);
+            for (var module : manifest.getAsJsonArray("modules")) module.getAsJsonObject().add("version", version.deepCopy());
+            Files.writeString(manifestFile.toPath(), GSON.toJson(manifest), StandardCharsets.UTF_8);
+        } catch (IOException | java.security.NoSuchAlgorithmException err) {
+            throw new RuntimeException(err);
         }
     }
 
@@ -230,8 +265,8 @@ public class ResourcePackManager {
             Path entityPath = entityFolder.toPath().resolve(entity.getPath() + entry.getKey() + ".json");
             entityPath.toFile().getParentFile().mkdirs();
 
-            if (entityPath.toFile().exists()) continue;
-
+            // Always rewritten: entity files only depend on the input and the config (e.g. view-distance), and a
+            // stale one would keep an old generator's output forever.
             try {
                 Files.writeString(entityPath, entity.getJson().toString(), StandardCharsets.UTF_8);
 
