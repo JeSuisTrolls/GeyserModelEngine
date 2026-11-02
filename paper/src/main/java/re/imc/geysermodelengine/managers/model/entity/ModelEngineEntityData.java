@@ -22,7 +22,7 @@ public class ModelEngineEntityData implements EntityData {
     private final ModeledEntity modeledEntity;
     private final ActiveModel activeModel;
 
-    private ModelEngineTaskHandler entityTask;
+    private volatile ModelEngineTaskHandler entityTask;
 
     public ModelEngineEntityData(GeyserModelEngine plugin, ModeledEntity modeledEntity, ActiveModel activeModel) {
         this.plugin = plugin;

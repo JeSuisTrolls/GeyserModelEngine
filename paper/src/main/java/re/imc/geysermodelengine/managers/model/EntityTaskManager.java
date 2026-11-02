@@ -57,6 +57,10 @@ public class EntityTaskManager {
     }
 
     public void checkViewers(EntityData model, Set<Player> viewers) {
+        // The task handler schedules its first run from its own constructor, so this can run before the entity data
+        // has stored it. Skip this cycle: viewers stay unchanged and the spawn is sent on the next one.
+        if (model.getEntityTask() == null) return;
+
         for (Player onlinePlayer : bedrockPlayers) {
             if (canSee(onlinePlayer, model.getEntity(), model.getModelInstance())) {
                 if (!viewers.contains(onlinePlayer)) {

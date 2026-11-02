@@ -30,7 +30,7 @@ public class BetterModelEntityData implements EntityData {
     private final EntityTracker entityTracker;
     // TODO DummyTracker support
 
-    private BetterModelTaskHandler entityTask;
+    private volatile BetterModelTaskHandler entityTask;
 
     private boolean hurt;
 
